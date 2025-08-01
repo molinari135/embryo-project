@@ -1,10 +1,14 @@
-# embryo-project
+# Embryo Viability Prediction
 
-<a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
+[cc-by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
+[cc-by-nc-image]: https://licensebuttons.net/l/by-nc/4.0/88x31.png
+[cc-by-nc-shield]: https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg
+
+[![CC BY-NC 4.0][cc-by-nc-shield]][cc-by-nc] <a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-Classification of embryos images to predict their survival rate
+Classification of embryos images to predict the viability
 
 ## Project Organization
 
@@ -59,3 +63,12 @@ Classification of embryos images to predict their survival rate
 
 --------
 
+## License
+
+This work is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License][cc-by-nc].
+
+For any commercial use or license requested for market activities, interested parties are invited to contact the Technology Transfer Office (TTO) of the University of Bari Aldo Moro, copyright holder. 
+
+For a copy of the license, please visit https://creativecommons.org/licenses/by-nc/4.0/
+
+[![CC BY-NC 4.0][cc-by-nc-image]][cc-by-nc]
