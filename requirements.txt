@@ -2,12 +2,15 @@ asttokens==3.0.0
 click==8.2.1
 colorama==0.4.6
 comm==0.2.3
+contourpy==1.3.3
+cycler==0.12.1
 debugpy==1.8.15
 decorator==5.2.1
--e git+https://github.com/molinari135/embryo-project.git@034e5ec0df4de14591371c2446d86ad83428fca0#egg=embryo_project
+-e git+https://github.com/molinari135/embryo-project.git@7c66bb63a9f775c572594949cd3ee5059a8efc49#egg=embryo_project
 et_xmlfile==2.0.0
 executing==2.2.0
 filelock==3.13.1
+fonttools==4.59.0
 fsspec==2024.6.1
 ipykernel==6.30.0
 ipython==9.4.0
@@ -16,9 +19,11 @@ jedi==0.19.2
 Jinja2==3.1.4
 jupyter_client==8.6.3
 jupyter_core==5.8.1
+kiwisolver==1.4.8
 loguru==0.7.3
 markdown-it-py==3.0.0
 MarkupSafe==2.1.5
+matplotlib==3.10.5
 matplotlib-inline==0.1.7
 mdurl==0.1.2
 mpmath==1.3.0
@@ -35,6 +40,7 @@ prompt_toolkit==3.0.51
 psutil==7.0.0
 pure_eval==0.2.3
 Pygments==2.19.2
+pyparsing==3.2.3
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 pytz==2025.2
@@ -42,6 +48,7 @@ pywin32==311
 pyzmq==27.0.0
 rich==14.1.0
 ruff==0.12.7
+seaborn==0.13.2
 setuptools==70.2.0
 shellingham==1.5.4
 six==1.17.0
