@@ -67,8 +67,6 @@ Classification of embryos images to predict the viability
 
 This work is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License][cc-by-nc].
 
-For any commercial use or license requested for market activities, interested parties are invited to contact the Technology Transfer Office (TTO) of the University of Bari Aldo Moro, copyright holder. 
-
 For a copy of the license, please visit https://creativecommons.org/licenses/by-nc/4.0/
 
 [![CC BY-NC 4.0][cc-by-nc-image]][cc-by-nc]
