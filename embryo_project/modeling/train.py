@@ -141,14 +141,14 @@ def prepare_dataloaders(batch_size=4, max_seq_len=20):
         transforms.ToTensor(),
         transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])
     ])
-    train_ds = EmbryoSequenceDataset(PROCESSED_DATA_DIR / "train", transform, max_seq_len)
+    train_ds = EmbryoSequenceDataset(PROCESSED_DATA_DIR / "train_balanced", transform, max_seq_len)
     val_ds = EmbryoSequenceDataset(PROCESSED_DATA_DIR / "val", transform, max_seq_len)
     test_ds = EmbryoSequenceDataset(PROCESSED_DATA_DIR / "test", transform, max_seq_len)
 
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
-    return train_loader, val_loader, test_loader
+    return train_ds, val_ds, test_ds, train_loader, val_loader, test_loader
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=10,
                 patience=5, best_model_path="best_model.pth", scheduler=None, is_cnn=False, is_vit=False):
@@ -219,11 +219,11 @@ def main(
     weight_decay: float = 1e-4
 ):
     logger.info("Preparing datasets...")
-    train_loader, val_loader, _ = prepare_dataloaders(batch_size=batch_size)
+    train_ds, _, _, train_loader, val_loader, _ = prepare_dataloaders(batch_size=batch_size)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
 
-    labels = [label for _, label in EmbryoSequenceDataset(PROCESSED_DATA_DIR / "train")]
+    labels = [label for _, label in train_ds]
     counter = Counter(labels)
     pos_weight = torch.tensor([counter[0]/counter[1]]).to(device)
 
