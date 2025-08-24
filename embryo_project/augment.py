@@ -19,6 +19,13 @@ augmentations = [
 
 # ---------- SUBFUNCTIONS ----------
 
+def folder_contains_class1(folder: Path) -> bool:
+    """Check if a folder contains at least one image ending with _1.jpg"""
+    for img_path in folder.glob("*.jpg"):
+        if img_path.stem.endswith("_1"):  # stem = filename without extension
+            return True
+    return False
+
 def augment_folder(folder_path: Path, num_aug: int = 2):
     """Create augmented copies of all images in one folder."""
     images = list(folder_path.glob("*.jpg"))
@@ -38,11 +45,18 @@ def augment_folder(folder_path: Path, num_aug: int = 2):
 
         logger.success(f"Created {new_folder}")
 
-def augment_dataset(train_dir: Path, num_aug: int = 2):
-    """Augment all folders inside train dataset."""
+def augment_dataset(train_dir: Path, num_aug: int = 2, only_class1: bool = False):
+    """Augment dataset: all folders or only those that contain _1 images."""
     for folder in train_dir.iterdir():
         if folder.is_dir() and "_aug" not in folder.name:
-            augment_folder(folder, num_aug=num_aug)
+            if only_class1:
+                if folder_contains_class1(folder):
+                    logger.info(f"Augmenting class-1 folder: {folder.name}")
+                    augment_folder(folder, num_aug=num_aug)
+                else:
+                    logger.debug(f"Skipping {folder.name} (no _1 images found)")
+            else:
+                augment_folder(folder, num_aug=num_aug)
 
 def remove_augmented_folders(train_dir: Path):
     """Remove all augmented folders (ending with '_augX')."""
@@ -60,10 +74,11 @@ def remove_augmented_folders(train_dir: Path):
 @app.command()
 def augment(
     train_dir: Path,
-    num_aug: int = 2
+    num_aug: int = 2,
+    only_class1: bool = typer.Option(False, help="If True, augment only folders containing _1 images")
 ):
     """Augment train dataset by creating new folders with transformed images."""
-    augment_dataset(train_dir, num_aug=num_aug)
+    augment_dataset(train_dir, num_aug=num_aug, only_class1=only_class1)
 
 @app.command()
 def clean(
