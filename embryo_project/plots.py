@@ -195,6 +195,29 @@ def plot_classification_results(preds, labels, model_name, figures_dir=FIGURES_D
     logger.success(f"Confusion matrix saved to {cm_path}")
 
 
+def plot_training_curves(train_losses, val_losses, save_path: Path = FIGURES_DIR, model_name: str = "model"):
+    epochs = range(1, len(train_losses) + 1)
+    
+    plt.figure(figsize=(8,6))
+    plt.plot(epochs, train_losses, marker='o', label="Train Loss")
+    plt.plot(epochs, val_losses, marker='o', label="Val Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title(f"{model_name} Training Curve")
+    plt.legend()
+    plt.grid(True)
+    
+    if save_path:
+        save_path.mkdir(parents=True, exist_ok=True)
+        plot_file = save_path / f"{model_name}_training_curve.png"
+        plt.savefig(plot_file)
+        logger.success(f"Saved training curve to {plot_file}")
+    else:
+        plt.show()
+    
+    plt.close()
+
+
 # ---------- CLI ----------
 
 @app.command()
