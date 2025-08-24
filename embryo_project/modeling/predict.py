@@ -30,8 +30,10 @@ def prepare_test_loader(batch_size=4, max_seq_len=20):
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
     return test_loader
 
+
 def evaluate_and_save_results(model, test_loader, device, model_name, models_dir=MODELS_DIR,
-                              reports_dir=REPORTS_DIR, figures_dir=FIGURES_DIR, is_cnn=False):
+                              reports_dir=REPORTS_DIR, figures_dir=FIGURES_DIR, is_cnn=False,
+                              report_name=None):
     os.makedirs(models_dir, exist_ok=True)
     os.makedirs(reports_dir, exist_ok=True)
     os.makedirs(figures_dir, exist_ok=True)
@@ -58,7 +60,14 @@ def evaluate_and_save_results(model, test_loader, device, model_name, models_dir
     # Classification report
     report = classification_report(all_labels, all_preds,
                                    target_names=["Class 0", "Class 1"], digits=4)
-    report_path = os.path.join(reports_dir, f"{model_name}_report.txt")
+
+    # Use custom report name if provided
+    if report_name is None:
+        report_filename = f"{model_name}_report.txt"
+    else:
+        report_filename = report_name if report_name.endswith(".txt") else f"{report_name}.txt"
+
+    report_path = os.path.join(reports_dir, report_filename)
     with open(report_path, "w") as f:
         f.write(report)
     logger.success(f"Classification report saved to {report_path}")
@@ -74,6 +83,7 @@ def evaluate_and_save_results(model, test_loader, device, model_name, models_dir
     plt.close()
     logger.success(f"Confusion matrix saved to {cm_path}")
 
+
 # ----------------------
 # CLI
 # ----------------------
@@ -81,7 +91,8 @@ def evaluate_and_save_results(model, test_loader, device, model_name, models_dir
 def main(
     model_type: str = typer.Option("all", help="Model to evaluate: ResNet, ViT, 3DCNN, or all"),
     batch_size: int = 4,
-    max_seq_len: int = 20
+    max_seq_len: int = 20,
+    report_name: str = typer.Option(None, help="Custom name for the classification report .txt file")
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
@@ -98,8 +109,9 @@ def main(
 
     for name, model, is_cnn in models_to_evaluate:
         logger.info(f"Evaluating {name}...")
-        evaluate_and_save_results(model, test_loader, device, name, is_cnn=is_cnn)
+        evaluate_and_save_results(model, test_loader, device, name, is_cnn=is_cnn, report_name=report_name)
         logger.success(f"{name} evaluation complete!")
+
 
 if __name__ == "__main__":
     app()
