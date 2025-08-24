@@ -19,6 +19,7 @@ from sklearn.metrics import f1_score
 import typer
 
 from embryo_project.config import PROCESSED_DATA_DIR, MODELS_DIR
+from embryo_project.plots import plot_training_curves
 
 app = typer.Typer()
 
@@ -151,13 +152,21 @@ def prepare_dataloaders(batch_size=4, max_seq_len=20):
     return train_ds, val_ds, test_ds, train_loader, val_loader, test_loader
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=10,
-                patience=5, best_model_path="best_model.pth", scheduler=None, is_cnn=False, is_vit=False):
+                patience=5, best_model_path="best_model.pth", scheduler=None, is_cnn=False, is_vit=False,
+                hyperparameters=None):
+
     best_val_f1 = 0.0
     epochs_no_improve = 0
+
+    train_losses_per_epoch = []
+    val_losses_per_epoch = []
+
     for epoch in range(num_epochs):
         # --- Training ---
         model.train()
-        train_losses, all_preds, all_labels = [], [], []
+        epoch_train_losses = []
+        all_preds, all_labels = [], []
+
         for inputs, labels in train_loader:
             if is_cnn:
                 inputs = inputs.permute(0,2,1,3,4).to(device)
@@ -171,13 +180,18 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
             loss.backward()
             optimizer.step()
 
-            train_losses.append(loss.item())
+            epoch_train_losses.append(loss.item())
             preds = (torch.sigmoid(outputs) > 0.5).int()
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
-        val_preds, val_labels, val_losses = [], [], []
+        train_losses_per_epoch.append(sum(epoch_train_losses)/len(epoch_train_losses))
+
+        # --- Validation ---
         model.eval()
+        epoch_val_losses = []
+        val_preds, val_labels = [], []
+
         with torch.no_grad():
             for inputs, labels in val_loader:
                 if is_cnn:
@@ -187,30 +201,47 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
                 labels = labels.float().to(device)
                 outputs = model(inputs).squeeze(1) if not is_vit else model(inputs)
                 loss = criterion(outputs, labels)
-                val_losses.append(loss.item())
+                epoch_val_losses.append(loss.item())
                 preds = (torch.sigmoid(outputs) > 0.5).int()
                 val_preds.extend(preds.cpu().numpy())
                 val_labels.extend(labels.cpu().numpy())
 
+        val_losses_per_epoch.append(sum(epoch_val_losses)/len(epoch_val_losses))
+
+        # --- Scheduler & Early stopping ---
         val_f1 = f1_score(val_labels, val_preds)
         if scheduler: scheduler.step()
 
         if val_f1 > best_val_f1:
             best_val_f1 = val_f1
-            torch.save(model.state_dict(), best_model_path)
-            logger.success(f"Saved best model {best_model_path} F1={best_val_f1:.4f}")
+            torch.save({
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "hyperparameters": hyperparameters,
+                "train_losses": train_losses_per_epoch,
+                "val_losses": val_losses_per_epoch
+            }, best_model_path)
             epochs_no_improve = 0
+            logger.success(f"Saved best model {best_model_path} F1={best_val_f1:.4f}")
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:
                 logger.warning("Early stopping triggered")
                 break
 
+    # --- Plot training curves ---
+    plot_training_curves(
+        train_losses=train_losses_per_epoch,
+        val_losses=val_losses_per_epoch,
+        model_name=best_model_path.stem
+    )
+
+
 # ----------------------
 # CLI
 # ----------------------
 @app.command()
-def main(
+def training(
     model_type: str = typer.Option("all", help="Model to train: ResNet, ViT, 3DCNN, or all"),
     batch_size: int = 4,
     num_epochs: int = 10,
@@ -229,6 +260,14 @@ def main(
 
     os.makedirs(MODELS_DIR, exist_ok=True)
 
+    hyperparams = {
+        "batch_size": batch_size,
+        "num_epochs": num_epochs,
+        "patience": patience,
+        "lr": lr,
+        "weight_decay": weight_decay
+    }
+
     models_to_train = []
     if model_type.lower() in ["resnet", "all"]:
         models_to_train.append(("ResNet18LSTM", ResNet18LSTM(), False, False))
@@ -244,9 +283,23 @@ def main(
         optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
         scheduler = StepLR(optimizer, step_size=5, gamma=0.1)
         best_model_path = MODELS_DIR / f"{name}.pth"
-        train_model(model, train_loader, val_loader, criterion, optimizer, device,
-                    num_epochs=num_epochs, patience=patience, best_model_path=best_model_path,
-                    scheduler=scheduler, is_cnn=is_cnn, is_vit=is_vit)
+
+        train_model(
+            model,
+            train_loader,
+            val_loader,
+            criterion,
+            optimizer,
+            device,
+            num_epochs=num_epochs,
+            patience=patience,
+            best_model_path=best_model_path,
+            scheduler=scheduler,
+            is_cnn=is_cnn,
+            is_vit=is_vit,
+            hyperparameters=hyperparams
+        )
+
         logger.success(f"{name} training complete!")
 
 if __name__ == "__main__":
