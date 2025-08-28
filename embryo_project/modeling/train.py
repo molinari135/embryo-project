@@ -89,49 +89,6 @@ class ResNet18LSTM(nn.Module):
         last_output = lstm_out[:, -1, :]
         return self.classifier(last_output)
 
-class ViTLSTM(nn.Module):
-    def __init__(self, hidden_dim=256, lstm_layers=1, dropout=0.1):
-        super().__init__()
-        self.vit = vit_b_16(pretrained=True)
-        self.vit.heads = nn.Identity()
-        self.lstm = nn.LSTM(
-            input_size=768,
-            hidden_size=hidden_dim,
-            num_layers=lstm_layers,
-            batch_first=True,
-            dropout=dropout if lstm_layers > 1 else 0
-        )
-        self.classifier = nn.Sequential(nn.Dropout(dropout), nn.Linear(hidden_dim, 1))
-
-    def forward(self, x):
-        B, T, C, H, W = x.shape
-        x = x.view(B * T, C, H, W)
-        vit_feats = self.vit(x)
-        vit_feats = vit_feats.view(B, T, -1)
-        lstm_out, _ = self.lstm(vit_feats)
-        last_hidden = lstm_out[:, -1, :]
-        return self.classifier(last_hidden).squeeze(1)
-
-class Simple3DCNN(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv3d(3, 16, 3, padding=1)
-        self.pool1 = nn.MaxPool3d(2)
-        self.conv2 = nn.Conv3d(16, 32, 3, padding=1)
-        self.pool2 = nn.MaxPool3d(2)
-        self.conv3 = nn.Conv3d(32, 64, 3, padding=1)
-        self.pool3 = nn.AdaptiveAvgPool3d(1)
-        self.fc = nn.Linear(64, 1)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = self.pool1(x)
-        x = F.relu(self.conv2(x))
-        x = self.pool2(x)
-        x = F.relu(self.conv3(x))
-        x = self.pool3(x)
-        x = x.view(x.size(0), -1)
-        return self.fc(x)
 
 # ----------------------
 # Helpers
@@ -153,7 +110,7 @@ def prepare_dataloaders(batch_size=4, max_seq_len=20):
     return train_ds, val_ds, test_ds, train_loader, val_loader, test_loader
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=10,
-                patience=5, best_model_path="best_model.pth", scheduler=None, is_cnn=False, is_vit=False,
+                patience=5, best_model_path="best_model.pth", scheduler=None,
                 hyperparameters=None):
 
     best_val_f1 = 0.0
@@ -169,14 +126,11 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         all_preds, all_labels = [], []
 
         for inputs, labels in train_loader:
-            if is_cnn:
-                inputs = inputs.permute(0,2,1,3,4).to(device)
-            else:
-                inputs = inputs.to(device)
+            inputs = inputs.to(device)
             labels = labels.float().to(device)
 
             optimizer.zero_grad()
-            outputs = model(inputs).squeeze(1) if not is_vit else model(inputs)
+            outputs = model(inputs).squeeze(1)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -195,12 +149,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
 
         with torch.no_grad():
             for inputs, labels in val_loader:
-                if is_cnn:
-                    inputs = inputs.permute(0,2,1,3,4).to(device)
-                else:
-                    inputs = inputs.to(device)
+                inputs = inputs.to(device)
                 labels = labels.float().to(device)
-                outputs = model(inputs).squeeze(1) if not is_vit else model(inputs)
+                outputs = model(inputs).squeeze(1)
                 loss = criterion(outputs, labels)
                 epoch_val_losses.append(loss.item())
                 preds = (torch.sigmoid(outputs) > 0.5).int()
@@ -243,9 +194,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
 # ----------------------
 @app.command()
 def training(
-    model_type: str = typer.Option("all", help="Model to train: ResNet, ViT, 3DCNN, or all"),
-    batch_size: int = 4,
-    num_epochs: int = 10,
+    model_name: str = "ResNet18LSTM",
+    batch_size: int = 64,
+    num_epochs: int = 100,
     patience: int = 5,
     lr: float = 1e-4,
     weight_decay: float = 1e-4
@@ -269,39 +220,30 @@ def training(
         "weight_decay": weight_decay
     }
 
-    models_to_train = []
-    if model_type.lower() in ["resnet", "all"]:
-        models_to_train.append(("ResNet18LSTM", ResNet18LSTM(), False, False))
-    if model_type.lower() in ["vit", "all"]:
-        models_to_train.append(("ViTLSTM", ViTLSTM(), False, True))
-    if model_type.lower() in ["3dcnn", "all"]:
-        models_to_train.append(("3DCNN", Simple3DCNN(), True, False))
+    model = ResNet18LSTM()
 
-    for name, model, is_cnn, is_vit in models_to_train:
-        logger.info(f"Training {name}...")
-        model = model.to(device)
-        criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-        optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-        scheduler = StepLR(optimizer, step_size=5, gamma=0.1)
-        best_model_path = MODELS_DIR / f"{name}.pth"
+    logger.info(f"Training {model_name}...")
+    model = model.to(device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    scheduler = StepLR(optimizer, step_size=5, gamma=0.1)
+    best_model_path = MODELS_DIR / f"{model_name}.pth"
 
-        train_model(
-            model,
-            train_loader,
-            val_loader,
-            criterion,
-            optimizer,
-            device,
-            num_epochs=num_epochs,
-            patience=patience,
-            best_model_path=best_model_path,
-            scheduler=scheduler,
-            is_cnn=is_cnn,
-            is_vit=is_vit,
-            hyperparameters=hyperparams
-        )
+    train_model(
+        model,
+        train_loader,
+        val_loader,
+        criterion,
+        optimizer,
+        device,
+        num_epochs=num_epochs,
+        patience=patience,
+        best_model_path=best_model_path,
+        scheduler=scheduler,
+        hyperparameters=hyperparams
+    )
 
-        logger.success(f"{name} training complete!")
+    logger.success(f"{model_name} training complete!")
 
 if __name__ == "__main__":
     app()
