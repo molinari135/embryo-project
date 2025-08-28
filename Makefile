@@ -74,40 +74,6 @@ create_environment:
 data: requirements
 	$(PYTHON_INTERPRETER) embryo_project/dataset.py
 
-## Run data augmentation
-.PHONY: augment
-augment: requirements
-	$(PYTHON_INTERPRETER) embryo_project/augment.py augmentation --train-dir data/train --num-aug 5
-
-## Run data augmentation only for class-1 folders
-.PHONY: augment-class1
-augment-class1: requirements
-	$(PYTHON_INTERPRETER) embryo_project/augment.py augmentation --train-dir data/train --num-aug 5 --only-class1
-
-## Remove augmented folders
-.PHONY: augment-clean
-augment-clean: requirements
-	$(PYTHON_INTERPRETER) embryo_project/augment.py clean --train-dir data/train
-
-## Train the model
-.PHONY: train
-train: requirements
-	$(PYTHON_INTERPRETER) embryo_project/modeling/train.py training \
-		--model-name $(MODEL_NAME) \
-		--batch-size $(BATCH_SIZE) \
-		--num-epochs $(NUM_EPOCHS) \
-		--patience $(PATIENCE) \
-		--lr $(LR) \
-		--weight-decay $(WEIGHT_DECAY)
-
-## Evaluate a trained model
-.PHONY: eval
-eval: requirements
-	$(PYTHON_INTERPRETER) embryo_project/modeling/predict.py main \
-		--model-name $(MODEL_NAME) \
-		--batch-size $(BATCH_SIZE) \
-		--max-seq-len $(MAX_SEQ_LEN)
-
 
 #################################################################################
 # Self Documenting Commands                                                     #
