@@ -15,7 +15,7 @@ app = typer.Typer()
 # ----------------------
 # Helpers
 # ----------------------
-def prepare_test_loader(batch_size=4, max_seq_len=20):
+def prepare_test_loader(batch_size=64, max_seq_len=20):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
@@ -26,7 +26,7 @@ def prepare_test_loader(batch_size=4, max_seq_len=20):
     return test_loader
 
 
-def evaluate_model(model, test_loader, device, model_name, models_dir=MODELS_DIR, is_cnn=False):
+def evaluate_model(model, test_loader, device, model_name, models_dir=MODELS_DIR):
     """Load model weights, run inference, and return predictions and labels."""
     best_model_path = os.path.join(models_dir, f"{model_name}.pth")
     checkpoint = torch.load(best_model_path, map_location=device)
@@ -39,10 +39,7 @@ def evaluate_model(model, test_loader, device, model_name, models_dir=MODELS_DIR
 
     with torch.no_grad():
         for inputs, labels in test_loader:
-            if is_cnn:
-                inputs = inputs.permute(0, 2, 1, 3, 4).to(device)
-            else:
-                inputs = inputs.to(device)
+            inputs = inputs.to(device)
             labels = labels.float().to(device)
             outputs = model(inputs)
             preds = (torch.sigmoid(outputs) > 0.5).int()
@@ -57,8 +54,8 @@ def evaluate_model(model, test_loader, device, model_name, models_dir=MODELS_DIR
 # ----------------------
 @app.command()
 def main(
-    model_type: str = typer.Option("all", help="Model to evaluate: ResNet, ViT, 3DCNN, or all"),
-    batch_size: int = 4,
+    model_name: str = "ResNet18LSTM",
+    batch_size: int = 64,
     max_seq_len: int = 20
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -66,24 +63,17 @@ def main(
 
     test_loader = prepare_test_loader(batch_size=batch_size, max_seq_len=max_seq_len)
 
-    models_to_evaluate = []
-    if model_type.lower() in ["resnet", "all"]:
-        models_to_evaluate.append(("ResNet18LSTM", ResNet18LSTM(), False))
-    if model_type.lower() in ["vit", "all"]:
-        models_to_evaluate.append(("ViTLSTM", ViTLSTM(), False))
-    if model_type.lower() in ["3dcnn", "all"]:
-        models_to_evaluate.append(("3DCNN", Simple3DCNN(), True))
-
     results = {}
-    for name, model, is_cnn in models_to_evaluate:
-        logger.info(f"Evaluating {name}...")
-        preds, labels = evaluate_model(model, test_loader, device, name, is_cnn=is_cnn)
-        results[name] = {"preds": preds, "labels": labels}
+    model = ResNet18LSTM()
 
-        # Call plots.py function to save report and confusion matrix
-        plots.plot_classification_results(preds, labels, name, FIGURES_DIR)
+    logger.info(f"Evaluating {model_name}...")
+    preds, labels = evaluate_model(model, test_loader, device, model_name)
+    results[model_name] = {"preds": preds, "labels": labels}
 
-        logger.success(f"{name} evaluation complete!")
+    # Call plots.py function to save report and confusion matrix
+    plots.plot_classification_results(preds, labels, model_name, FIGURES_DIR)
+
+    logger.success(f"{model_name} evaluation complete!")
 
     return results
 
