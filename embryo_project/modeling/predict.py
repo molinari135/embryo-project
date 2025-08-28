@@ -29,7 +29,9 @@ def prepare_test_loader(batch_size=4, max_seq_len=20):
 def evaluate_model(model, test_loader, device, model_name, models_dir=MODELS_DIR, is_cnn=False):
     """Load model weights, run inference, and return predictions and labels."""
     best_model_path = os.path.join(models_dir, f"{model_name}.pth")
-    model.load_state_dict(torch.load(best_model_path))
+    checkpoint = torch.load(best_model_path, map_location=device)
+
+    model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
     model.eval()
 

@@ -142,7 +142,8 @@ def prepare_dataloaders(batch_size=4, max_seq_len=20):
         transforms.ToTensor(),
         transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])
     ])
-    train_ds = EmbryoSequenceDataset(PROCESSED_DATA_DIR / "train_balanced", transform, max_seq_len)
+    # TODO add custom train path
+    train_ds = EmbryoSequenceDataset(PROCESSED_DATA_DIR / "train", transform, max_seq_len)
     val_ds = EmbryoSequenceDataset(PROCESSED_DATA_DIR / "val", transform, max_seq_len)
     test_ds = EmbryoSequenceDataset(PROCESSED_DATA_DIR / "test", transform, max_seq_len)
 

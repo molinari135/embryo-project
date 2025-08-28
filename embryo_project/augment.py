@@ -72,7 +72,7 @@ def remove_augmented_folders(train_dir: Path):
 # ---------- TYPER COMMANDS ----------
 
 @app.command()
-def augment(
+def augmentation(
     train_dir: Path,
     num_aug: int = 2,
     only_class1: bool = typer.Option(False, help="If True, augment only folders containing _1 images")
