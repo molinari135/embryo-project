@@ -74,7 +74,7 @@ def remove_augmented_folders(train_dir: Path):
 @app.command()
 def augmentation(
     train_dir: Path,
-    num_aug: int = 2,
+    num_aug: int = 5,
     only_class1: bool = typer.Option(False, help="If True, augment only folders containing _1 images")
 ):
     """Augment train dataset by creating new folders with transformed images."""
