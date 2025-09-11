@@ -6,6 +6,18 @@ PROJECT_NAME = embryo-project
 PYTHON_VERSION = 3.13
 PYTHON_INTERPRETER = python
 
+TRAIN_DIR ?= data/train
+NUM_AUG ?= 2
+
+MODEL_NAME ?= ResNet18LSTM
+BATCH_SIZE ?= 64
+NUM_EPOCHS ?= 100
+PATIENCE ?= 5
+LR ?= 1e-4
+WEIGHT_DECAY ?= 1e-4
+MAX_SEQ_LEN ?= 20
+
+
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
