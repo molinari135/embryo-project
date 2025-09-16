@@ -11,6 +11,8 @@
   Classification of embryo images to predict viability using deep learning models (ResNet, ViT, LSTM, 3DCNN).
   The project follows the Cookiecutter Data Science structure and provides reproducible pipelines for preprocessing, annotation, feature extraction, training, and evaluation.
 
+> A report and a presentation can be found in [docs folder](https://github.com/molinari135/embryo-project/tree/master/docs)
+
 ## Table of Contents
 - [Project Organization](#project-organization)
 - [Setup](#setup)
